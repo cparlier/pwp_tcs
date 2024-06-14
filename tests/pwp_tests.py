@@ -44,7 +44,10 @@ plt_profile = pwp.translate_argo( test_profile )
 
 meteorology_src = "data\\single_point_Ike_2008.nc"
 test_meteorology = xr.open_dataset( meteorology_src )
-forcing = met.prepare_forcing( test_meteorology )
+forcing_full = met.prepare_forcing( test_meteorology )
+
+# temporarily force into a single value
+forcing = forcing_full.isel(time=225)
 
 #%%
 # plots
@@ -85,3 +88,4 @@ profile = pwp.pwp_step( test_world, profile, forcing )
 
 
 # %%
+# testing cell
