@@ -12,17 +12,17 @@ def prepare_forcing( met_xr ):
     met_xr['emp'] = np.abs( met_xr['evap'] ) - np.abs( met_xr['prec'] )
     return met_xr
 
-            raise Exception('Variable ' + var + ' not found in xarray.' )
-        elif len( which_name ) > 1 :
-            raise Exception('Found multiple matches for variable ' + var + ' in xarray.')
-        else:
-            # Restructure var_name dict such that current name is key
-            var_names[ which_name[0] ] = var;
-            del var_names[var]
+    #         raise Exception('Variable ' + var + ' not found in xarray.' )
+    #     elif len( which_name ) > 1 :
+    #         raise Exception('Found multiple matches for variable ' + var + ' in xarray.')
+    #     else:
+    #         # Restructure var_name dict such that current name is key
+    #         var_names[ which_name[0] ] = var;
+    #         del var_names[var]
 
-    # Now change names of variables in xr_obj
-    met_xr = met_xr.rename( var_names )
-    return met_xr
+    # # Now change names of variables in xr_obj
+    # met_xr = met_xr.rename( var_names )
+    # return met_xr
 
 
 def translate_met( met_xr ):

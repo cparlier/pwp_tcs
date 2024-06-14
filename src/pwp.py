@@ -14,7 +14,8 @@ Big tasks pending as of March 27, 2024:
 '''
 
 ''' 
-This module is largely refactored from Earlew's pwp_python_00 package. Here, PWP functions have been broken into multiple subfunctions, and relevant classes were to improve organization and modularity with other applications, such as coupling with atmospheric models.
+This module is largely refactored from Earlew's pwp_python_00 package. Here, PWP functions have been broken into multiple subfunctions,
+and relevant classes were to improve organization and modularity with other applications, such as coupling with atmospheric models.
 
 @earlew describes the algorithm of his pwp.run() as 
 
