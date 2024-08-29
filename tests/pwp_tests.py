@@ -47,7 +47,65 @@ test_meteorology = xr.open_dataset( meteorology_src )
 forcing_full = met.prepare_forcing( test_meteorology )
 
 # temporarily force into a single value
-forcing = forcing_full.isel(time=225)
+forcing = forcing_full.isel(time=200)
+
+
+
+# %%
+# set things up and create instance of world to call methods
+test_world = pwp.World( lat = 20 )
+profile = pwp.World.interp_profile( test_world, plt_profile )
+
+#%%
+# fix inputs temporarily
+forcing['q_in'] = 0; forcing['taux'] = -1; forcing['tauy'] = -1; test_world.dt = 1000
+#%%
+# first running comparison plot
+step_num = 1
+colors = ['r', 'b', 'g', 'c', 'm', 'y', 'k']
+fig, ax = plt.subplots()
+ax.plot( profile.temp, profile.z, colors[step_num % len(colors)], label=f"Step {step_num}")
+ax.set_xlabel( "temperature" )
+ax.set_ylabel( "depth" )
+ax.invert_yaxis()
+plt.title( "temperature profiles as pwp steps run" )
+ax.legend()
+plt.show()
+
+
+#%%
+# take a pwp step and update plot
+step_num += 1
+profile = pwp.pwp_step( test_world, profile, forcing )
+
+# update plot
+ax.plot( profile.temp, profile.z, colors[step_num % len(colors)], label=f"Step {step_num}")
+ax.legend()
+fig
+
+
+
+# %%
+# temp code
+# forcing['q_in'] = 1000; forcing['taux'] = -1; forcing['tauy'] = -1; test_world.dt = 1000
+
+
+
+
+#%%
+# more plots
+# forcing plot
+# fig, ax1 = plt.subplots()
+# ax1.plot( forcing.time, forcing.taux )
+# ax1.plot( forcing.time, forcing.tauy, 'r' )
+
+# density plot
+fig, ax1 = plt.subplots()
+ax1.plot(profile.dens, profile.z)
+ax1.set_xlabel('density')
+ax1.set_ylabel('depth')
+ax1.invert_yaxis()
+
 
 #%%
 # plots
@@ -66,26 +124,3 @@ ax2.set_ylabel( "depth" )
 plt.gca().invert_yaxis()
 plt.title( "test profile" )
 plt.show()
-
-#%%
-# more plots
-fig, ax1 = plt.subplots()
-
-ax1.plot( forcing.time, forcing.taux )
-
-ax1.plot( forcing.time, forcing.tauy, 'r' )
-
-
-# %%
-# run a pwp step
-# Create instance of world to call methods
-test_world = pwp.World( lat = 20 )
-profile = pwp.World.interp_profile( test_world, plt_profile )
-profile = pwp.pwp_step( test_world, profile, forcing )
-
-# take a single pwp step
-
-
-
-# %%
-# testing cell

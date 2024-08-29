@@ -91,6 +91,7 @@ class World:
     Ri_g : float = 0.25; # threshold gradient richardson number
     Ri_b : float = 0.65; # threshold bulk richardson number
     rkz : float = 1e-6; # backgroudn vertical diffusivity
+    g : float = 9.81; #gravitational constant in m/s^2
     # thermodynamics and optics
     beta_1 : float = 0.6; # longwave extinction coefficient (meters)
     beta_2 : float = 20; # shortwave extinction coefficient
@@ -226,7 +227,7 @@ class World:
                 continue
             else:
                 # Compute bulk Ri
-                Ri_v = 9.81 * dif_rho / dif_vel / ( self.dz * jj )             
+                Ri_v = self.g * dif_rho / dif_vel / ( self.dz * jj )             
             
                 # now use these values and call mixing routine if necessary
                 if Ri_v > self.Ri_b:
@@ -236,6 +237,75 @@ class World:
                     # mix jj to surface, as earlew
        
         return profile 
+
+    def grad_mix ( self, profile ):
+        # initialize Richardson number vector
+        Ri = np.zeros( len( profile['z'] ) - 1 )
+
+        # calculate initial Richardson numbers
+        for jj in range ( 0 , len( profile['z'] ) - 1 ):
+            dif_rho = profile['dens'][jj + 1] - profile['dens'][jj]
+            dif_vel = ( profile['u'][jj + 1] - profile['u'][jj] )**2 + \
+                ( profile['v'][jj + 1] - profile['v'][jj] )**2
+            if dif_vel > 1e-6:
+                Ri[jj] = self.g * self.dz * dif_rho / dif_vel
+            else:
+                Ri[jj] = np.inf
+        
+        # loop until all criticality is gone
+        while True:
+
+            # find smallest Ri and check criticality, exit if no criticality
+            Ri_min = np.min(Ri)
+            Ri_min_idx = np.argmin(Ri)
+            if Ri_min > self.Ri_g:
+                return profile
+            
+            # mix cells
+            # don't really understand this first step, but it's the accepted process
+            Ri_con = 0.02 + (self.Ri_g - Ri_min) / 2
+            Ri_new = self.Ri_g + Ri_con / 5
+            f = 1 - Ri_min / Ri_new
+            
+            # mix temp
+            delta_temp = ( profile['temp'][Ri_min_idx + 1] - profile['temp'][Ri_min_idx] ) * f / 2
+            profile['temp'][Ri_min_idx + 1] = profile['temp'][Ri_min_idx + 1] - delta_temp
+            profile['temp'][Ri_min_idx] = profile['temp'][Ri_min_idx] + delta_temp
+            
+            # mix salinity
+            delta_sal = ( profile['sal'][Ri_min_idx + 1] - profile['sal'][Ri_min_idx] ) * f / 2
+            profile['sal'][Ri_min_idx + 1] = profile['sal'][Ri_min_idx + 1] - delta_sal
+            profile['sal'][Ri_min_idx] = profile['sal'][Ri_min_idx] + delta_sal
+            
+            # mix velocities
+            delta_u = ( profile['u'][Ri_min_idx + 1] - profile['u'][Ri_min_idx] ) * f / 2
+            profile['u'][Ri_min_idx + 1] = profile['u'][Ri_min_idx + 1] - delta_u
+            profile['u'][Ri_min_idx] = profile['u'][Ri_min_idx] + delta_u
+            
+            delta_v = ( profile['v'][Ri_min_idx + 1] - profile['v'][Ri_min_idx] ) * f / 2
+            profile['v'][Ri_min_idx + 1] = profile['v'][Ri_min_idx + 1] - delta_v
+            profile['v'][Ri_min_idx] = profile['v'][Ri_min_idx] + delta_v
+
+            # calculate new density
+            profile['dens'][Ri_min_idx : Ri_min_idx + 1] = gsw.rho_t_exact(
+                    profile['sal'][Ri_min_idx : Ri_min_idx + 1], 
+                    profile['temp'][Ri_min_idx : Ri_min_idx + 1],
+                    profile['z'][Ri_min_idx : Ri_min_idx + 1] )
+            
+            # calculate new Ri
+            jj_start = Ri_min_idx - 2
+            if jj_start < 1: jj_start = 0
+            jj_end = Ri_min_idx + 2
+            if jj_end > len( profile['z'] ) - 1: jj_end = len( profile['z'] ) - 1
+
+            for jj in range( jj_start , jj_end ):
+                dif_rho = profile['dens'][jj + 1] - profile['dens'][jj]
+                dif_vel = ( profile['u'][jj + 1] - profile['u'][jj] )**2 + \
+                    ( profile['v'][jj + 1] - profile['v'][jj] )**2
+                if dif_vel > 1e-10:
+                    Ri[jj] = self.g * self.dz * dif_rho / dif_vel
+                else:
+                    Ri[jj] = np.inf
 
 
 
@@ -257,7 +327,10 @@ def pwp_step( world, profile, forcing ):
     profile = world.rotate( profile ); # coriolis for dt / 2
     # time to apply mixing parameterizations
     profile = world.bulk_mix( profile );
-    # still need to add gradient Ri mixing, and background diffusion
+    # gradient mixing
+    profile = world.grad_mix( profile );
+
+    # diffusion
     return profile 
 
 # -------------- below are pwp functions independent of simulation parameters
